@@ -1,0 +1,25 @@
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+
+# pom.xmlをコピーして依存関係を解決（キャッシュ効率化）
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# ソースコードをコピーしてビルド
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# 実行用の軽量イメージ
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+# ビルドしたJARをコピー
+COPY --from=build /app/target/*.jar app.jar
+
+# Flywayマイグレーション用の設定
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV JAVA_OPTS="-Xmx512m -Xms256m"
+
+EXPOSE 8080
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

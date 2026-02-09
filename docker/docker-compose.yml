@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # PostgreSQLデータベース
+  db:
+    image: postgres:15-alpine
+    container_name: zestark-timer-db
+    environment:
+      POSTGRES_DB: timewatch
+      POSTGRES_USER: timewatch_user
+      POSTGRES_PASSWORD: timewatch_pass
+      TZ: Asia/Tokyo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - zestark-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timewatch_user -d timewatch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Bootバックエンド
+  backend:
+    platform: linux/amd64
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: zestark-timer-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/timewatch
+      SPRING_DATASOURCE_USERNAME: timewatch_user
+      SPRING_DATASOURCE_PASSWORD: timewatch_pass
+      FLYWAY_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - zestark-network
+    volumes:
+      - maven_cache:/root/.m2
+
+  # React開発サーバー（開発時のみ）
+  frontend:
+    image: node:18-alpine
+    container_name: zestark-timer-frontend
+    working_dir: /app
+    command: npm run dev
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api
+    ports:
+      - "3000:3000"
+    volumes:
+      - node_modules:/app/node_modules
+    networks:
+      - zestark-network
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  maven_cache:
+  node_modules:
+
+networks:
+  zestark-network:
+    driver: bridge
