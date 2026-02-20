@@ -17,8 +17,6 @@ CREATE TABLE task_sessions (
   task_id UUID NOT NULL REFERENCES tasks(id),
   start_time TIMESTAMP NOT NULL,
   end_time TIMESTAMP,
-  planned_duration_minutes INTEGER,      -- 予定時間（分）
-  actual_duration_minutes INTEGER,       -- 実計測時間（分）
   created_at TIMESTAMP NOT NULL DEFAULT now()
 );
 ```
@@ -39,34 +37,8 @@ WHERE end_time IS NULL;
 CREATE TABLE task_events (
   id UUID PRIMARY KEY,
   task_id UUID NOT NULL REFERENCES tasks(id),
-  session_id UUID REFERENCES task_sessions(id),
   event_type TEXT NOT NULL,
   occurred_at TIMESTAMP NOT NULL DEFAULT now()
-);
-```
-### pause_intervalsテーブル
-```
-CREATE TABLE pause_intervals (
-  id UUID PRIMARY KEY,
-  session_id UUID NOT NULL REFERENCES task_sessions(id),
-  paused_at TIMESTAMP NOT NULL,
-  resumed_at TIMESTAMP
-);
-```
-CHECK制約:
-```
-ALTER TABLE pause_intervals
-ADD CONSTRAINT chk_pause_order
-CHECK (resumed_at IS NULL OR paused_at < resumed_at);
-```
-### task_edit_historiesテーブル
-```
-CREATE TABLE task_edit_histories (
-  id UUID PRIMARY KEY,
-  task_id UUID NOT NULL REFERENCES tasks(id),
-  before_description TEXT,
-  after_description TEXT,
-  edited_at TIMESTAMP NOT NULL DEFAULT now()
 );
 ```
 ## 運用イメージ

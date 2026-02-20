@@ -19,7 +19,7 @@
 | Session欠損 | 復旧不可（論理破綻）                           |
 ## 合計時間の算出
 1. 集計対象
-TaskSession.actual_duration_minutes の合計
+TaskSession.actual_duration の合計
 2. 条件
 ・ended 状態の Session のみ
 ・日付は ended_at 基準
